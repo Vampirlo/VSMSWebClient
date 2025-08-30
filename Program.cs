@@ -4,7 +4,7 @@ using VSMSWebClient.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Добавляем SQLite
+// Adding SQLite
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite("Data Source=requests.db"));
 
@@ -33,7 +33,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    dbContext.Database.EnsureCreated(); // Создаёт БД и таблицу если их нет
+    dbContext.Database.EnsureCreated(); // Creates databases and tables if there are none
 }
 
 //app.UseHttpsRedirection();

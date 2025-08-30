@@ -16,7 +16,6 @@ namespace VSMSWebClient.Services
             _httpClient = httpClient;
             _logger = logger;
 
-            // Настраиваем таймауты для HTTP запросов
             _httpClient.Timeout = TimeSpan.FromSeconds(30);
         }
 
@@ -67,6 +66,64 @@ namespace VSMSWebClient.Services
             }
         }
 
+        public async Task<List<RequestFromServer>?> DownloadAllRequestsFromServerAsync()
+        {
+            var serverIp = _iniService.ReadValue("VSMSWebServer", "ip");
+            var serverPort = _iniService.ReadValue("VSMSWebServer", "port");
+
+            if (string.IsNullOrEmpty(serverIp) || string.IsNullOrEmpty(serverPort))
+            {
+                _logger.LogWarning("Server IP or Port not configured in INI file");
+                return null;
+            }
+
+            try
+            {
+                var url = $"http://{serverIp}:{serverPort}/api/requests/downloadAll";
+
+                _logger.LogDebug("Downloading requests from {Url}", url);
+
+                var response = await _httpClient.GetAsync(url);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    
+                    _logger.LogInformation("Received JSON from server: {Json}", json);
+                    _logger.LogInformation("JSON length: {Length} characters", json.Length);
+
+                    var options = new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    };
+
+                    var requests = JsonSerializer.Deserialize<List<RequestFromServer>>(json, options);
+
+                    _logger.LogInformation("Successfully downloaded {Count} requests from server {Server}",
+                        requests?.Count ?? 0, serverIp);
+                    return requests;
+                }
+                else
+                {
+                    var responseContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("Failed to download requests. Status: {StatusCode}, Response: {Response}",
+                        response.StatusCode, responseContent);
+                    return null;
+                }
+            }
+            catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
+            {
+                _logger.LogError("Timeout while downloading requests from server");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error downloading requests from server");
+                return null;
+            }
+
+        }
+
         public (string ip, string port) GetServerSettings()
         {
             return (
@@ -87,5 +144,7 @@ namespace VSMSWebClient.Services
             var (ip, port) = GetServerSettings();
             return !string.IsNullOrEmpty(ip) && !string.IsNullOrEmpty(port);
         }
+
+
     }
 }

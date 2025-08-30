@@ -42,7 +42,7 @@ namespace VSMSWebClient.Services
             var dataTransferService = scope.ServiceProvider.GetRequiredService<DataTransferService>();
             var requestRepository = scope.ServiceProvider.GetRequiredService<RequestRepositoryService>();
 
-            // Проверяем, настроен ли сервер
+            //  Checking if the server is configured
             var (ip, port) = dataTransferService.GetServerSettings();
             if (string.IsNullOrEmpty(ip) || string.IsNullOrEmpty(port))
             {
@@ -52,26 +52,41 @@ namespace VSMSWebClient.Services
 
             try
             {
+                // send requests table data to server
                 var requests = await requestRepository.GetAllRequestsAsync();
-                if (requests.Count == 0)
+                if (requests.Count != 0)
                 {
-                    _logger.LogInformation("No requests to send automatically");
-                    return;
-                }
-
-                _logger.LogInformation("Auto-sending {Count} requests to server {Ip}:{Port}",
+                    _logger.LogInformation("Auto-sending {Count} requests to server {Ip}:{Port}",
                     requests.Count, ip, port);
 
-                var success = await dataTransferService.SendAllRequestsToServerAsync(requests);
+                    var success = await dataTransferService.SendAllRequestsToServerAsync(requests);
 
-                if (success)
+                    if (success)
+                        _logger.LogInformation("Auto-send successful: {Count} requests sent", requests.Count);
+                    else
+                        _logger.LogWarning("Auto-send failed for {Count} requests or server unreachable", requests.Count);
+                }
+                else 
+                    _logger.LogInformation("No requests to send automatically");
+
+                // get requestsFromServer table from server 
+                var requestsFromServer = await dataTransferService.DownloadAllRequestsFromServerAsync();
+
+                if (requestsFromServer == null)
                 {
-                    _logger.LogInformation("Auto-send successful: {Count} requests sent", requests.Count);
+                    _logger.LogWarning("Failed to download requests from server - returned null");
+                }
+
+                if (requestsFromServer != null)
+                {
+                    var changesCount = await requestRepository.SyncRequestsFromServerAsync(requestsFromServer);
+                    _logger.LogInformation("Auto-downloaded {Count} requests from server", requestsFromServer.Count);
                 }
                 else
                 {
-                    _logger.LogWarning("Auto-send failed for {Count} requests", requests.Count);
+                    _logger.LogInformation("No requests found on server for download");
                 }
+
             }
             catch (Exception ex)
             {
