@@ -24,8 +24,31 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 builder.Logging.AddFile("logs/ServerMainInfo-{Date}.txt");
 
+var iniService = new IniFileService();
+string portValue = iniService.ReadValue("VSMSWebClient", "port");
+string localhostValue = iniService.ReadValue("VSMSWebClient", "localhost");
+
 int port = 8081;
-builder.WebHost.UseUrls($"http://*:{port}", $"http://0.0.0.0:{port}");
+if (!string.IsNullOrEmpty(portValue) && int.TryParse(portValue, out int parsedPort))
+{
+    port = parsedPort;
+}
+
+bool useLocalhost = !string.IsNullOrEmpty(localhostValue) &&
+                    bool.TryParse(localhostValue, out bool parsedLocalhost) &&
+                    parsedLocalhost;
+
+if (useLocalhost)
+{
+    builder.WebHost.UseUrls(
+        $"http://0.0.0.0:{port}",
+        $"http://localhost:{port}"
+    );
+}
+else
+{
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+}
 
 var app = builder.Build();
 

@@ -6,7 +6,6 @@ namespace VSMSWebClient.Services
     {
         private readonly ILogger<RequestLoggerService> _logger;
 
-        // /api/MegafonCallback DB status write logging
         public RequestLoggerService(ILogger<RequestLoggerService> logger)
         {
             _logger = logger;
@@ -18,6 +17,22 @@ namespace VSMSWebClient.Services
                 _logger.LogInformation("Status update SUCCESS: UUID={Uuid}, Status={Status}", uuid, status);
             else
                 _logger.LogWarning("Status update FAILED: UUID={Uuid}, Status={Status}, Error={ErrorMessage}", uuid, status, errorMessage ?? "Request not found");
+        }
+        public void LogInformation(string str)
+        {
+
+            _logger.LogInformation(str);
+
+        }
+
+        public void LogWarning(string str)
+        {
+            _logger.LogWarning(str);
+        }
+
+        public void LogError(Exception ex, string str)
+        {
+            _logger.LogError(ex, str);
         }
     }
 }

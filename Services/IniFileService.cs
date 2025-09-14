@@ -27,6 +27,11 @@ namespace VSMSWebClient.Services
                 writer.WriteLine("[VSMSWebServer]");
                 writer.WriteLine("ip=");
                 writer.WriteLine("port=");
+
+                writer.WriteLine("[VSMSWebClient]");
+                writer.WriteLine("port=");
+                writer.WriteLine("localhost=");
+
             }
         }
 
