@@ -31,7 +31,7 @@ namespace VSMSWebClient.Services
                 writer.WriteLine("[VSMSWebClient]");
                 writer.WriteLine("port=");
                 writer.WriteLine("localhost=");
-
+                writer.WriteLine("backgroundInterval=1");
             }
         }
 
@@ -118,6 +118,16 @@ namespace VSMSWebClient.Services
             }
 
             File.WriteAllLines(_filePath, lines, Encoding.UTF8);
+        }
+
+        public int ReadIntValue(string section, string key, int defaultValue = 0)
+        {
+            var value = ReadValue(section, key);
+            if (int.TryParse(value, out int result))
+            {
+                return result;
+            }
+            return defaultValue;
         }
     }
 }

@@ -4,14 +4,20 @@ namespace VSMSWebClient.Services
     {
         private readonly ILogger<BackgroundDataSenderService> _logger;
         private readonly IServiceProvider _serviceProvider;
-        private readonly TimeSpan _interval = TimeSpan.FromSeconds(1);
+        private readonly TimeSpan _interval;
+        private readonly IniFileService _iniService;
 
         public BackgroundDataSenderService(
             ILogger<BackgroundDataSenderService> logger,
-            IServiceProvider serviceProvider)
+            IServiceProvider serviceProvider,
+            IniFileService iniService)
         {
             _logger = logger;
             _serviceProvider = serviceProvider;
+            _iniService = iniService;
+
+            int intervalSeconds = _iniService.ReadIntValue("VSMSWebClient", "backgroundInterval", 1);
+            _interval = TimeSpan.FromSeconds(intervalSeconds);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
