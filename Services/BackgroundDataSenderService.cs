@@ -6,6 +6,7 @@ namespace VSMSWebClient.Services
         private readonly IServiceProvider _serviceProvider;
         private readonly TimeSpan _interval;
         private readonly IniFileService _iniService;
+        private bool _firstRun = true;
 
         public BackgroundDataSenderService(
             ILogger<BackgroundDataSenderService> logger,
@@ -76,7 +77,22 @@ namespace VSMSWebClient.Services
                     _logger.LogInformation("No requests to send automatically");
 
                 // get requestsFromServer table from server 
-                var requestsFromServer = await dataTransferService.DownloadAllRequestsFromServerAsync();
+                //var requestsFromServer = await dataTransferService.DownloadAllRequestsFromServerAsync();
+                //var requestsFromServer = await dataTransferService.SyncFromServerAsync();
+                List<Models.RequestFromServer>? requestsFromServer;
+
+
+                if (_firstRun)
+                {
+                    requestsFromServer = await dataTransferService.DownloadAllRequestsFromServerAsync();
+                    _firstRun = false;
+                }
+                else
+                {
+                    requestsFromServer = await dataTransferService.SyncFromServerAsync();
+                }
+
+
 
                 if (requestsFromServer == null)
                 {
@@ -85,7 +101,7 @@ namespace VSMSWebClient.Services
 
                 if (requestsFromServer != null)
                 {
-                    var changesCount = await requestRepository.SyncRequestsFromServerAsync(requestsFromServer);
+                    var changesCount = await requestRepository.SyncRequestsFromServerAsyncWithoutDelete(requestsFromServer);
                     _logger.LogInformation("Auto-downloaded {Count} requests from server", requestsFromServer.Count);
                 }
                 else

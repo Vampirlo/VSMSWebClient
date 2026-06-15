@@ -192,5 +192,92 @@ namespace VSMSWebClient.Services
                 throw;
             }
         }
+
+        public async Task<int> SyncRequestsFromServerAsyncWithoutDelete(List<RequestFromServer> newRequests)
+        {
+            _logger.LogInformation("Starting sync with {Count} new requests", newRequests.Count);
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                // 1. Получаем существующие UUID
+                var existingUuids = await _context.RequestsFromServer
+                    .Where(r => r.Uuid != null)
+                    .Select(r => r.Uuid)
+                    .ToListAsync();
+
+                _logger.LogInformation("Existing UUIDs in DB: {Count}", existingUuids.Count);
+                _logger.LogInformation("New UUIDs from server: {Count}", newRequests.Count);
+
+                // 2. Записи для добавления (есть на сервере, нет локально)
+                var requestsToAdd = newRequests
+                    .Where(r => r.Uuid != null && !existingUuids.Contains(r.Uuid))
+                    .Select(r => new RequestFromServer
+                    {
+                        FirstName = r.FirstName,
+                        SecondName = r.SecondName,
+                        LastName = r.LastName,
+                        PhoneNumber = r.PhoneNumber,
+                        Uuid = r.Uuid,
+                        Status = r.Status,
+                        Message = r.Message,
+                        SendTime = r.SendTime
+                    })
+                    .ToList();
+
+                // 3. Записи для обновления (есть и там, и там)
+                var requestsToUpdate = newRequests
+                    .Where(r => r.Uuid != null && existingUuids.Contains(r.Uuid))
+                    .ToList();
+
+                _logger.LogInformation("To add: {AddCount}, To update: {UpdateCount}",
+                    requestsToAdd.Count, requestsToUpdate.Count);
+
+                // 4. Добавление
+                if (requestsToAdd.Count > 0)
+                {
+                    await _context.RequestsFromServer.AddRangeAsync(requestsToAdd);
+                    _logger.LogInformation("Added {Count} new records", requestsToAdd.Count);
+                }
+
+                // 5. Обновление
+                if (requestsToUpdate.Count > 0)
+                {
+                    foreach (var newRequest in requestsToUpdate)
+                    {
+                        var existing = await _context.RequestsFromServer
+                            .FirstOrDefaultAsync(r => r.Uuid == newRequest.Uuid);
+                        if (existing != null)
+                        {
+                            existing.FirstName = newRequest.FirstName;
+                            existing.SecondName = newRequest.SecondName;
+                            existing.LastName = newRequest.LastName;
+                            existing.PhoneNumber = newRequest.PhoneNumber;
+                            existing.Status = newRequest.Status;
+                            existing.Message = newRequest.Message;
+                            existing.SendTime = newRequest.SendTime;
+
+                            _context.RequestsFromServer.Update(existing);
+                        }
+                    }
+                    _logger.LogInformation("Updated {Count} records", requestsToUpdate.Count);
+                }
+
+                // 6. УДАЛЕНИЕ УБРАНО! Клиент никогда не удаляет записи на основе дельты.
+
+                var changes = await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                _logger.LogInformation("Sync completed with {Changes} changes", changes);
+                return changes;
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Error during sync");
+                throw;
+            }
+        }
     }
 }
