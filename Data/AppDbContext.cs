@@ -26,6 +26,7 @@ namespace VSMSWebClient.Data
                 entity.Property(e => e.Status).HasColumnName("status");
                 entity.Property(e => e.Message).HasColumnName("message");
                 entity.Property(e => e.SendTime).HasColumnName("sendTime");
+                entity.Property(e => e.IsSent).HasColumnName("isSent").HasDefaultValue(0);
             });
 
             modelBuilder.Entity<RequestFromServer>().ToTable("requestsFromServer");

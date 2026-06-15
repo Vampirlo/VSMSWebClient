@@ -60,7 +60,7 @@ namespace VSMSWebClient.Services
             try
             {
                 // send requests table data to server
-                var requests = await requestRepository.GetAllRequestsAsync();
+                var requests = await requestRepository.GetUnsentRequestsAsync();
                 if (requests.Count != 0)
                 {
                     _logger.LogInformation("Auto-sending {Count} requests to server {Ip}:{Port}",
@@ -69,7 +69,12 @@ namespace VSMSWebClient.Services
                     var success = await dataTransferService.SendAllRequestsToServerAsync(requests);
 
                     if (success)
+                    {
+                        var uuids = requests.Select(r => r.Uuid).ToList();
+                        await requestRepository.MarkRequestsAsSentAsync(uuids);
+
                         _logger.LogInformation("Auto-send successful: {Count} requests sent", requests.Count);
+                    }
                     else
                         _logger.LogWarning("Auto-send failed for {Count} requests or server unreachable", requests.Count);
                 }

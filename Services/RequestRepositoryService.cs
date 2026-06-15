@@ -279,5 +279,24 @@ namespace VSMSWebClient.Services
                 throw;
             }
         }
+
+        public async Task<List<Request>> GetUnsentRequestsAsync()
+        {
+            return await _context.Requests
+                .Where(r => !r.IsSent)
+                .ToListAsync();
+        }
+
+        public async Task MarkRequestsAsSentAsync(List<string> uuids)
+        {
+            var requests = await _context.Requests
+                .Where(r => uuids.Contains(r.Uuid))
+                .ToListAsync();
+
+            foreach (var req in requests)
+                req.IsSent = true;
+
+            await _context.SaveChangesAsync();
+        }
     }
 }
