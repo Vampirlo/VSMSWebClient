@@ -41,13 +41,13 @@ bool useLocalhost = !string.IsNullOrEmpty(localhostValue) &&
 if (useLocalhost)
 {
     builder.WebHost.UseUrls(
-        $"http://0.0.0.0:{port}",
-        $"http://localhost:{port}"
+        $"https://0.0.0.0:{port}",
+        $"https://localhost:{port}"
     );
 }
 else
 {
-    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+    builder.WebHost.UseUrls($"https://0.0.0.0:{port}");
 }
 
 var app = builder.Build();
@@ -59,7 +59,7 @@ using (var scope = app.Services.CreateScope())
     dbContext.Database.EnsureCreated(); // Creates databases and tables if there are none
 }
 
-//app.UseHttpsRedirection();
+app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 

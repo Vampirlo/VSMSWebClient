@@ -10,10 +10,16 @@ namespace VSMSWebClient.Services
         private readonly HttpClient _httpClient;
         private readonly ILogger<DataTransferService> _logger;
 
-        public DataTransferService(IniFileService iniService, HttpClient httpClient, ILogger<DataTransferService> logger)
+        public DataTransferService(IniFileService iniService, ILogger<DataTransferService> logger)
         {
+            var handler = new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback =
+            (sender, cert, chain, sslPolicyErrors) => true
+            };
+
             _iniService = iniService;
-            _httpClient = httpClient;
+            _httpClient = new HttpClient(handler);
             _logger = logger;
 
             _httpClient.Timeout = TimeSpan.FromSeconds(30);
@@ -32,7 +38,7 @@ namespace VSMSWebClient.Services
 
             try
             {
-                var url = $"http://{serverIp}:{serverPort}/api/requests/uploadAll";
+                var url = $"https://{serverIp}:{serverPort}/api/requests/uploadAll";
                 var json = JsonSerializer.Serialize(requests);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
@@ -79,7 +85,7 @@ namespace VSMSWebClient.Services
 
             try
             {
-                var url = $"http://{serverIp}:{serverPort}/api/requests/downloadAll";
+                var url = $"https://{serverIp}:{serverPort}/api/requests/downloadAll";
 
                 _logger.LogDebug("Downloading requests from {Url}", url);
 
@@ -137,7 +143,7 @@ namespace VSMSWebClient.Services
 
             try
             {
-                var url = $"http://{serverIp}:{serverPort}/api/requests/sync";
+                var url = $"https://{serverIp}:{serverPort}/api/requests/sync";
 
                 _logger.LogDebug("Downloading requests from {Url}", url);
 
